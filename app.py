@@ -38,6 +38,10 @@ threading.Timer(150, hard_stop).start()          # whatever happens, never hang
 write()
 variant = sys.argv[3] if len(sys.argv) > 3 else "server"      # "server": pywebview's built-in page server; "file": file://
 res["variant"] = variant
+fast = variant.endswith("-fast")       # take the host-name lookup out of the page server's start (it took 35 s on a Mac)
+if fast:
+    variant = variant[:-5]
+res["lookup_removed"] = fast
 
 # Where does start-up time go? Time every host-name lookup and every request the page server answers.
 import socket
@@ -50,7 +54,7 @@ _getfqdn = socket.getfqdn
 def timed_getfqdn(name=""):
     a = time.time()
     try:
-        return _getfqdn(name)
+        return (name or "localhost") if fast else _getfqdn(name)
     finally:
         res["getfqdn_calls"].append([round(a - t0, 2), str(name), round(time.time() - a, 2)])
 

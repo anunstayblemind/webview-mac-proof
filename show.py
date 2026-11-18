@@ -1,5 +1,6 @@
-"""Print the result files in full. Exit non-zero if a REQUIRED file (the built app, name contains "app") missed a
-check or is absent. Runs from source are printed and summarised but do not decide the job: the app is what ships."""
+"""Print the result files in full. Exit non-zero if a REQUIRED file missed a check or is absent: the built app with the page
+server's host-name lookup removed (three runs) and with the strict content policy that allows eval. The other runs
+are printed and summarised but do not decide the job."""
 import json
 import os
 import sys
@@ -7,7 +8,7 @@ import sys
 bad = 0
 for path in sys.argv[1:]:
     print("=" * 20, path)
-    required = "app" in os.path.basename(path)
+    required = os.path.basename(path).startswith(("result-app-fast", "result-app-csp-eval-fast"))
     if not os.path.exists(path):
         print("MISSING: this run wrote no result file")
         bad += required
