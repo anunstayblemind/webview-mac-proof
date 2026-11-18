@@ -54,6 +54,12 @@ jobs:
       - name: Run the built app, page from a file instead of the built-in server
         continue-on-error: true
         run: dist/proof.app/Contents/MacOS/proof "$PWD/result-app-file.json" visible file
+      - name: Run the built app, page with a strict content policy (no eval)
+        continue-on-error: true
+        run: dist/proof.app/Contents/MacOS/proof "$PWD/result-app-csp.json" visible csp
+      - name: Run the built app, same policy but eval allowed
+        continue-on-error: true
+        run: dist/proof.app/Contents/MacOS/proof "$PWD/result-app-csp-eval.json" visible csp-eval
       - name: Size and signature of the built app
         if: always()
         run: |
@@ -62,7 +68,7 @@ jobs:
           ditto -c -k --keepParent dist/proof.app proof-app.zip
       - name: Results
         if: always()
-        run: python show.py result-source.json result-source2.json result-source-file.json result-app.json result-app2.json result-app-file.json
+        run: python show.py result-source.json result-source2.json result-source-file.json result-app.json result-app2.json result-app-file.json result-app-csp.json result-app-csp-eval.json
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -75,4 +81,6 @@ jobs:
             result-app2.json
             result-source-file.json
             result-app-file.json
+            result-app-csp.json
+            result-app-csp-eval.json
             proof-app.zip

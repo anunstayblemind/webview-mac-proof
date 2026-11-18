@@ -1,0 +1,7 @@
+@font-face { font-family: ProofFont; src: url('fonts/Tektur-Variable.ttf'); }
+@font-face { font-family: MissingFont; src: url('fonts/does-not-exist.ttf'); }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes glow { 50% { box-shadow: 0 0 40px #3dffa2; } }
+#box { width: 60px; height: 60px; background: #3dffa2; animation: spin 0.4s linear infinite, glow 1s ease-in-out infinite; }
+#glass { width: 200px; height: 40px; background: rgba(255,255,255,.08); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+body { background: #05070a; color: #fff; font: 20px ProofFont, serif; }

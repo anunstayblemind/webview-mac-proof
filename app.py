@@ -141,7 +141,7 @@ def run(win):
 
 
 kw = {"x": -32000, "y": -32000, "focus": False} if mode == "offscreen" else {"x": 60, "y": 60}
-page = os.path.join(base, "web", "index.html")
+page = os.path.join(base, "web", {"csp": "index-csp.html", "csp-eval": "index-csp-eval.html"}.get(variant, "index.html"))
 if variant == "file":
     from pathlib import Path
     page = Path(page).as_uri()
