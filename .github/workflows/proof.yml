@@ -1,0 +1,55 @@
+name: proof
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-26]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Machine
+        run: |
+          sw_vers
+          uname -m
+          python --version
+      - name: Install
+        run: python -m pip install -r requirements.txt
+      - name: Run from source (a real window)
+        continue-on-error: true
+        run: python app.py "$PWD/result-source.json" visible
+      - name: Build the app with PyInstaller
+        run: pyinstaller --noconfirm --windowed --name proof --add-data "web:web" app.py
+      - name: Run the built app (a real window)
+        continue-on-error: true
+        run: dist/proof.app/Contents/MacOS/proof "$PWD/result-app.json" visible
+      - name: Size and signature of the built app
+        if: always()
+        run: |
+          du -sh dist/proof.app
+          codesign -dv dist/proof.app 2>&1 | head -8 || true
+          ditto -c -k --keepParent dist/proof.app proof-app.zip
+      - name: Results
+        if: always()
+        run: python show.py result-source.json result-app.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: proof-${{ matrix.os }}
+          retention-days: 3
+          path: |
+            result-source.json
+            result-app.json
+            proof-app.zip

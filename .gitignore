@@ -1,0 +1,6 @@
+result*.json
+dist/
+build/
+*.spec
+__pycache__/
+proof-app.zip
