@@ -10,6 +10,7 @@ import json
 import os
 import platform
 import sys
+import sysconfig
 import threading
 import time
 
@@ -18,6 +19,7 @@ mode = sys.argv[2] if len(sys.argv) > 2 else "visible"
 t0 = time.time()
 res = {"mode": mode, "frozen": bool(getattr(sys, "frozen", False)), "python": sys.version.split()[0],
        "platform": platform.platform(), "machine": platform.machine(), "mac_ver": platform.mac_ver()[0],
+       "framework_python": sysconfig.get_config_var("PYTHONFRAMEWORK") or "",
        "js_called_python": [], "misses": ["did not finish"]}
 
 
@@ -27,12 +29,12 @@ def write():
 
 
 def hard_stop():
-    res["misses"] = ["timeout after 40 s"] + [m for m in res.get("misses", []) if m != "did not finish"]
+    res["misses"] = ["timeout after 150 s"] + [m for m in res.get("misses", []) if m != "did not finish"]
     write()
     os._exit(3)
 
 
-threading.Timer(40, hard_stop).start()          # whatever happens, never hang
+threading.Timer(150, hard_stop).start()          # whatever happens, never hang
 write()
 
 try:
@@ -79,6 +81,14 @@ def judge():
 def run(win):
     try:
         res["renderer"] = getattr(webview, "renderer", None)
+        shown = win.events.shown.wait(60)                      # how long a cold start really takes
+        res["shown_s"] = round(time.time() - t0, 1) if shown else None
+        loaded = win.events.loaded.wait(60)
+        res["loaded_s"] = round(time.time() - t0, 1) if loaded else None
+        if not loaded:
+            res["misses"] = [f"page did not load within 60 s of the window (shown={shown})"]
+            write()
+            os._exit(2)
         res["py2js_add"] = win.evaluate_js("add(2, 3)")
         res["py2js_beep"] = win.evaluate_js("beep()")
         time.sleep(3)

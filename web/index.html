@@ -35,7 +35,7 @@ function beep() {                                         // called from Python,
   } catch (e) { R.audio.error = String(e); }
   return 'beep-called';
 }
-function width(font) { const s = document.createElement('span'); s.style.font = font; s.textContent = 'PROOF 0123456789';
+function width(font) { const s = document.createElement('span'); s.style.font = font; s.style.whiteSpace = 'nowrap'; s.style.position = 'absolute'; s.textContent = 'PROOF 0123456789';
   document.body.appendChild(s); const w = s.getBoundingClientRect().width; s.remove(); return w; }
 async function collect() {
   const good = await document.fonts.load('20px ProofFont').catch(e => 'ERR ' + e);
