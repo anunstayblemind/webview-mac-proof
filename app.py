@@ -36,6 +36,38 @@ def hard_stop():
 
 threading.Timer(150, hard_stop).start()          # whatever happens, never hang
 write()
+variant = sys.argv[3] if len(sys.argv) > 3 else "server"      # "server": pywebview's built-in page server; "file": file://
+res["variant"] = variant
+
+# Where does start-up time go? Time every host-name lookup and every request the page server answers.
+import socket
+from wsgiref import simple_server
+
+res["getfqdn_calls"], res["requests"] = [], []
+_getfqdn = socket.getfqdn
+
+
+def timed_getfqdn(name=""):
+    a = time.time()
+    try:
+        return _getfqdn(name)
+    finally:
+        res["getfqdn_calls"].append([round(a - t0, 2), str(name), round(time.time() - a, 2)])
+
+
+socket.getfqdn = timed_getfqdn
+_handle = simple_server.WSGIRequestHandler.handle
+
+
+def timed_handle(self):
+    a = time.time()
+    try:
+        return _handle(self)
+    finally:
+        res["requests"].append([round(a - t0, 2), round(time.time() - t0, 2), str(getattr(self, "path", None))])
+
+
+simple_server.WSGIRequestHandler.handle = timed_handle
 
 try:
     import webview
@@ -109,6 +141,13 @@ def run(win):
 
 
 kw = {"x": -32000, "y": -32000, "focus": False} if mode == "offscreen" else {"x": 60, "y": 60}
-w = webview.create_window("proof", os.path.join(base, "web", "index.html"), js_api=Api(), width=480, height=360, **kw)
-webview.start(run, w, http_server=True)
+page = os.path.join(base, "web", "index.html")
+if variant == "file":
+    from pathlib import Path
+    page = Path(page).as_uri()
+res["create_s"] = round(time.time() - t0, 2)
+w = webview.create_window("proof", page, js_api=Api(), width=480, height=360, **kw)
+res["start_called_s"] = round(time.time() - t0, 2)
+res["t0_epoch_ms"] = round(t0 * 1000)
+webview.start(run, w, http_server=(variant != "file"))
 os._exit(0 if not res["misses"] else 2)

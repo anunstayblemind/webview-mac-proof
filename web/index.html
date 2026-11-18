@@ -37,6 +37,9 @@ function beep() {                                         // called from Python,
 }
 function width(font) { const s = document.createElement('span'); s.style.font = font; s.style.whiteSpace = 'nowrap'; s.style.position = 'absolute'; s.textContent = 'PROOF 0123456789';
   document.body.appendChild(s); const w = s.getBoundingClientRect().width; s.remove(); return w; }
+function nav() { const n = performance.getEntriesByType('navigation')[0]; if (!n) return null; const o = {};
+  for (const k of ['fetchStart','domainLookupStart','domainLookupEnd','connectStart','connectEnd','requestStart','responseStart',
+    'responseEnd','domInteractive','domContentLoadedEventEnd','domComplete','loadEventEnd']) o[k] = Math.round(n[k]); return o; }
 async function collect() {
   const good = await document.fonts.load('20px ProofFont').catch(e => 'ERR ' + e);
   const bad = await document.fonts.load('20px MissingFont').catch(e => 'ERR ' + e);
@@ -55,7 +58,9 @@ async function collect() {
     fontWidthProof: width('20px ProofFont, serif'), fontWidthFallback: width('20px serif'),
     controlMissingFontLoaded: Array.isArray(bad) ? bad.map(f => f.family + ':' + f.status) : bad,
     controlMissingFontWidth: width('20px MissingFont, serif'),
-    webgl: gl ? (gl.getParameter(gl.VERSION)) : null, audio: R.audio, js2py: R.js2py, errors: R.errors });
+    webgl: gl ? (gl.getParameter(gl.VERSION)) : null, audio: R.audio, js2py: R.js2py, errors: R.errors,
+    timeOriginMs: Math.round(performance.timeOrigin), nav: nav(), resources: performance.getEntriesByType('resource').map(
+      e => [e.name.split('/').pop(), Math.round(e.startTime), Math.round(e.responseEnd), e.initiatorType]) });
 }
 window.addEventListener('pywebviewready', async () => {     // page -> Python, with a return value
   try { R.js2py = await window.pywebview.api.echo('hello-from-js'); } catch (e) { R.js2py = 'ERR ' + e; }

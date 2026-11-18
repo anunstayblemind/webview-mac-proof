@@ -19,6 +19,10 @@ for path in sys.argv[1:]:
     if d.get("misses"):
         bad += required
     p = d.get("page") or {}
+    origin = (p.get("timeOriginMs") - d["t0_epoch_ms"]) / 1000 if p.get("timeOriginMs") and d.get("t0_epoch_ms") else None
+    print(f"TIMING {path}: variant={d.get('variant')} create_s={d.get('create_s')} start_called_s={d.get('start_called_s')} "
+          f"shown_s={d.get('shown_s')} navigation_began_s={origin} loaded_s={d.get('loaded_s')} "
+          f"getfqdn={d.get('getfqdn_calls')} requests={d.get('requests')} nav={p.get('nav')} resources={p.get('resources')}")
     print(f"SUMMARY {path}: misses={d.get('misses')} frames={p.get('rafFrames')} "
           f"gap_avg_ms={p.get('frameGapAvgMs')} gap_worst_ms={p.get('frameGapWorstMs')} font={p.get('fontCheck')} "
           f"audio_running={d.get('audio_running')} audio={p.get('audio')} blur={p.get('backdropFilter')} "
