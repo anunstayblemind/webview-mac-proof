@@ -14,7 +14,7 @@ jobs:
       matrix:
         os: [macos-15, macos-26]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -27,39 +27,39 @@ jobs:
           python --version
       - name: Install
         run: python -m pip install -r requirements.txt
-      - name: How long do host-name lookups take here
+      - name: How long does the host-name lookup take here
         run: |
           python - <<'PY'
           import socket, time
-          for n in ("", "127.0.0.1", "localhost"):
-              a = time.time(); r = socket.getfqdn(n); print(repr(n), "->", r, round(time.time() - a, 2), "s")
+          a = time.time(); r = socket.getfqdn("127.0.0.1"); print("127.0.0.1 ->", r, round(time.time() - a, 2), "s")
           PY
-      - name: Run from source, first time on this machine (a real window)
-        continue-on-error: true
-        run: python app.py "$PWD/result-source.json" visible
-      - name: Run from source again
-        continue-on-error: true
-        run: python app.py "$PWD/result-source2.json" visible
-      - name: Run from source, page from a file instead of the built-in server
-        continue-on-error: true
-        run: python app.py "$PWD/result-source-file.json" visible file
       - name: Build the app with PyInstaller
         run: pyinstaller --noconfirm --windowed --name proof --add-data "web:web" app.py
-      - name: Run the built app (a real window)
+      # "fast" = the built-in page server with the slow host-name lookup taken out. These decide the job.
+      - name: App, page server without the lookup, run 1
         continue-on-error: true
-        run: dist/proof.app/Contents/MacOS/proof "$PWD/result-app.json" visible
-      - name: Run the built app again
+        run: dist/proof.app/Contents/MacOS/proof "$PWD/result-app-fast1.json" visible server-fast
+      - name: App, page server without the lookup, run 2
         continue-on-error: true
-        run: dist/proof.app/Contents/MacOS/proof "$PWD/result-app2.json" visible
-      - name: Run the built app, page from a file instead of the built-in server
+        run: dist/proof.app/Contents/MacOS/proof "$PWD/result-app-fast2.json" visible server-fast
+      - name: App, page server without the lookup, run 3
+        continue-on-error: true
+        run: dist/proof.app/Contents/MacOS/proof "$PWD/result-app-fast3.json" visible server-fast
+      - name: App, strict content policy (no eval), without the lookup
+        continue-on-error: true
+        run: dist/proof.app/Contents/MacOS/proof "$PWD/result-app-csp-fast.json" visible csp-fast
+      - name: App, same policy but eval allowed, without the lookup
+        continue-on-error: true
+        run: dist/proof.app/Contents/MacOS/proof "$PWD/result-app-csp-eval-fast.json" visible csp-eval-fast
+      - name: App, page from a file (no page server)
         continue-on-error: true
         run: dist/proof.app/Contents/MacOS/proof "$PWD/result-app-file.json" visible file
-      - name: Run the built app, page with a strict content policy (no eval)
+      - name: From source, page server without the lookup
         continue-on-error: true
-        run: dist/proof.app/Contents/MacOS/proof "$PWD/result-app-csp.json" visible csp
-      - name: Run the built app, same policy but eval allowed
+        run: python app.py "$PWD/result-source-fast.json" visible server-fast
+      - name: For the record, the app with the lookup left in (expected slow or failing here)
         continue-on-error: true
-        run: dist/proof.app/Contents/MacOS/proof "$PWD/result-app-csp-eval.json" visible csp-eval
+        run: dist/proof.app/Contents/MacOS/proof "$PWD/result-slow-lookup.json" visible server
       - name: Size and signature of the built app
         if: always()
         run: |
@@ -68,19 +68,12 @@ jobs:
           ditto -c -k --keepParent dist/proof.app proof-app.zip
       - name: Results
         if: always()
-        run: python show.py result-source.json result-source2.json result-source-file.json result-app.json result-app2.json result-app-file.json result-app-csp.json result-app-csp-eval.json
+        run: python show.py result-app-fast1.json result-app-fast2.json result-app-fast3.json result-app-csp-fast.json result-app-csp-eval-fast.json result-app-file.json result-source-fast.json result-slow-lookup.json
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: proof-${{ matrix.os }}
           retention-days: 3
           path: |
-            result-source.json
-            result-source2.json
-            result-app.json
-            result-app2.json
-            result-source-file.json
-            result-app-file.json
-            result-app-csp.json
-            result-app-csp-eval.json
+            result-*.json
             proof-app.zip
